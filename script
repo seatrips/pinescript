@@ -1,38 +1,52 @@
 
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © seatrips
+// © seatrips Jan-2023
 
 //@version=5
-indicator("AlertConditions and AlertSignal Plots with Pre Alerts LM and SM", shorttitle = "MA Multi Alerts", overlay=true)
+indicator("AlertConditions and AlertSignal Plots with Pre Alerts LM and SMA", shorttitle = "BSA", overlay=true)
 
 // Indicator
+
+ema8 = ta.ema(close, 8)
 ema10 = ta.ema(close, 10)
+sma12 = ta.ema(close, 12)
 sma20 = ta.sma(close, 20)
 ema34 = ta.ema(close, 34)
 sma50 = ta.sma(close, 50)
 sma200 = ta.sma(close, 200)
 
+// Source
+
 src = input(close, title='Source')
 
+// SMA
+
 sma200plot = input(true, title='Show SMA200 on chart')
+sma50plot = input (true, title="Show SMA50 on chart")
+sma12plot = input (true, title="Show SMA12 on chart")
 
-len200 = input.int(200, minval=1, title='SMA 200 Length')
+// Lenght
 
-len20 = input.int(20, minval=1, title='SMA 20 Length')
+len200 = input.int(200, title='SMA 200 Length')
+len50 = input(50, title="SMA 50 Length")
+len8 = input.int(20, title='EMA 8 Length')
+len12 = input.int(12, title='SMA 12 Length')
+len20 = input.int(20, title='SMA 20 Length')
 
+// OUT
+
+out8 = ta.sma(src, len8)
 out20 = ta.sma(src, len20)
 
-// Define color variables as inputs
-
-up200_color = input(color.rgb(7, 69, 198), "Up200 Color")
-down200_color = input(color.rgb(7, 99, 198), "Down200 Color")
-default200_color = input(color.rgb(7, 129, 198), "Default200 Color")
-
 // Create input field for average line
+
 averageLineInput = input(true, title="Average Line")
 
 //Calculate average line
+
 averageLine = (ema10 + ema34 + sma20 + sma50 + sma200) / 5
+
+// High Low Average
 
 highalert = close > averageLine
 lowalert = close < averageLine
@@ -46,20 +60,37 @@ plot(averageLine, color = color.orange, title="Average", style=plot.style_circle
 out200 = ta.sma(src, len200)
 up200 = out200 > out20[1]
 down200 = out200 < out20[1]
-mycolor200 = up200 ? up200_color : down200 ? down200_color : default200_color
+mycolor200 = up200 ? color.rgb(7, 69, 198) : down200 ? color.rgb(7, 99, 198) : color.rgb(7, 129, 198)
 plot(out200 and sma200plot ? out200 : na, title='SMA200', color=mycolor200, style=plot.style_circles, linewidth=2)
+
+// Plot MA 50
+
+out50 = ta.sma(src, len50)
+up50 = out50 > out20[1]
+down50 = out50 < out20[1]
+mycolor50 = up50 ? color.rgb(136, 5, 5) : down50 ? color.rgb(136, 35, 5) : color.rgb(136, 65, 5)
+plot(out50 and sma50plot ? out50 :na, title="SMA50", color=mycolor50, linewidth = 2)
+
+// Plot MA 12
+
+out12 = ta.sma(src, len12)
+up12 = out12 > out8[1]
+down12 = out12 < out8[1]
+mycolor = up12 ? color.rgb(5, 129, 164) : down12 ? color.rgb(5, 159, 164) : color.rgb(5, 189, 164)
+plot(out12 and sma12plot ? out12 :na, title="SMA12", color=mycolor, linewidth = 3)
 
 // Set candle colors
 
 color candlecolor = close > averageLine and averageLine > sma200 ? color.orange : close < averageLine and averageLine < sma200 ? color.blue : color.white
-
 barcolor(candlecolor)
+
+// Set Background color
 
 bgcolor(highalert and averageLine > sma200 ? color.rgb(255, 153, 0, 94) : na, title="bgcolorhigh")
 bgcolor(lowalert and averageLine < sma200 ? color.rgb(33, 149, 243, 94) : na, title="bgcolorlow")
 bgcolor(candlecolor == color.white ? color.rgb(120, 123, 134, 94) : na)
 
-//signal once
+// Signal once Long & Short
 
 var isLong = false
 var isShort = false
@@ -80,8 +111,12 @@ if (short)
     isLong := false
     isShort := true
 
+// Plot Long & Short
+
 plotshape(long, style=shape.arrowup, color = color.orange, title= "LONG Signal", text="LONG", textcolor=color.orange, location=location.belowbar)
 plotshape(short, style=shape.arrowdown, color = color.blue, title= "SHORT Signal", text="SHORT", textcolor=color.blue, location=location.abovebar)
+
+// Signal once LM & SM
 
 var candlewhitelong = false
 var candlewhiteshort = false
@@ -102,6 +137,8 @@ if (movementshort)
     candlewhitelong := false
     candlewhiteshort := true
 
+// Plot LM & SM
+
 plotshape(movementlong and candlecolor != color.orange, style=shape.arrowup, color = color.rgb(235, 226, 213), title= "LongMove", text="LM", textcolor=color.orange, location=location.belowbar)
 plotshape(movementshort and candlecolor != color.blue, style=shape.arrowdown, color = color.rgb(204, 218, 229), title= "ShortMove Signal", text="SM", textcolor=color.blue, location=location.abovebar)
 
@@ -114,6 +151,26 @@ alertcondition(short, title = "Short Alert", message = "Short Alert has been Gen
 
 alertcondition(movementlong and candlecolor != color.orange, title = "Long Move Alert", message = "Long Alert has been Generated")
 alertcondition(movementshort and candlecolor != color.blue, title = "Short Move Alert", message = "Short Alert has been Generated")
+
+// Support & Resistance
+
+showlabels = input(title='Show Labels ?', defval=false)
+offset_val = input(title='Label Offset', defval=0)
+
+// Calculate support and resistance levels
+
+resistance = ta.highest(high, 90)
+support = ta.lowest(low, 90)
+
+// Plot support and resistance lines
+
+plot(resistance, color=color.new(color.red, 0), title='resistance', linewidth=2)
+plot(support, color=color.new(color.green, 0), title='support', linewidth=2)
+
+// Make labels show up next to lines
+
+plotshape(showlabels ? resistance : na, style=shape.labeldown, location=location.absolute, color=color.blue, textcolor=color.new(color.white, 0), show_last=1, text='resistance', offset=offset_val, title='resistance')
+plotshape(showlabels ? support : na, style=shape.labelup, location=location.absolute, color=color.blue, textcolor=color.new(color.white, 0), show_last=1, text='support', offset=offset_val, title='support')
 
 
 
