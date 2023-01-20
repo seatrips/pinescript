@@ -88,65 +88,50 @@ barcolor(candlecolor)
 bgcolor(highalert and averageLine > sma200 ? color.rgb(255, 153, 0, 94) : na, title="bgcolorhigh")
 bgcolor(lowalert and averageLine < sma200 ? color.rgb(33, 149, 243, 94) : na, title="bgcolorlow")
 
-// Signal once Long & Short
+// Signal once Long & Short and LM & SM
 
 var isLong = false
 var isShort = false
+var candlewhitelong = false
+var candlewhiteshort = false
 
-//Long
+//Long and LM
 
 long = not isLong and (highalert and averageLine > sma200)
+movementlong = not candlewhitelong and highalert
 
-//Short
+//Short and SM
 
 short = not isShort and (lowalert and averageLine < sma200)
+movementshort = not candlewhiteshort and lowalert
 
 if (long)
     isLong := true
     isShort := false
 
-if (short)
-    isLong := false
-    isShort := true
-
-// Plot Long & Short
-
-plotshape(long, style=shape.arrowup, color = color.orange, title= "LONG Signal", text="LONG", textcolor=color.orange, location=location.belowbar)
-plotshape(short, style=shape.arrowdown, color = color.blue, title= "SHORT Signal", text="SHORT", textcolor=color.blue, location=location.abovebar)
-
-// Signal once LM & SM
-
-var candlewhitelong = false
-var candlewhiteshort = false
-
-//Long
-
-movementlong = not candlewhitelong and highalert
-
-//Short
-
-movementshort = not candlewhiteshort and lowalert
-
 if (movementlong)
     candlewhitelong := true
     candlewhiteshort := false
+
+if (short)
+    isLong := false
+    isShort := true
 
 if (movementshort)
     candlewhitelong := false
     candlewhiteshort := true
 
-// Plot LM & SM
+// Plot Long & Short and LM & SM
 
+plotshape(long, style=shape.arrowup, color = color.orange, title= "LONG Signal", text="LONG", textcolor=color.orange, location=location.belowbar)
+plotshape(short, style=shape.arrowdown, color = color.blue, title= "SHORT Signal", text="SHORT", textcolor=color.blue, location=location.abovebar)
 plotshape(movementlong and candlecolor != color.orange, style=shape.arrowup, color = color.rgb(235, 226, 213), title= "LongMove", text="LM", textcolor=color.orange, location=location.belowbar)
 plotshape(movementshort and candlecolor != color.blue, style=shape.arrowdown, color = color.rgb(204, 218, 229), title= "ShortMove Signal", text="SM", textcolor=color.blue, location=location.abovebar)
 
-// Alerts Long and Short
+// Alerts Long & Short and Long & Short without Moving Averages Lined up Safe
 
 alertcondition(long, title = "Long Alert", message = "Long Alert has been Generated")
 alertcondition(short, title = "Short Alert", message = "Short Alert has been Generated")
-
-// Alert Long and Short without Moving Averages Lined up Safe
-
 alertcondition(movementlong and candlecolor != color.orange, title = "Long Move Alert", message = "Long Alert has been Generated")
 alertcondition(movementshort and candlecolor != color.blue, title = "Short Move Alert", message = "Short Alert has been Generated")
 
@@ -169,7 +154,6 @@ plot(support, color=color.new(color.green, 0), title='support', linewidth=2)
 
 plotshape(showlabels ? resistance : na, style=shape.labeldown, location=location.absolute, color=color.blue, textcolor=color.new(color.white, 0), show_last=1, text='resistance', offset=offset_val, title='resistance')
 plotshape(showlabels ? support : na, style=shape.labelup, location=location.absolute, color=color.blue, textcolor=color.new(color.white, 0), show_last=1, text='support', offset=offset_val, title='support')
-
 
 
 
