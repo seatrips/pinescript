@@ -1,0 +1,231 @@
+```
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © seatrips
+
+//@version=5
+indicator("MA, ROC, OBV, ES, LONG & SHORT Feb-2023", shorttitle = "(", overlay=true)
+
+//source
+
+src = close
+
+// Confirmation
+
+confirmOpen = input(true, title="Require Open above/below Close for Confirmation")
+
+// Define moving averages
+
+ema10 = ta.ema(close, 10)
+sma20 = ta.sma(close, 20)
+ema34 = ta.ema(close, 34)
+sma50 = ta.sma(close, 50)
+sma200 = ta.sma(close, 200)
+
+// Define support and resistance levels
+
+resistance = ta.highest(high, 90)
+support = ta.lowest(low, 90)
+
+// Len EMA SMA
+
+len10 = input.int(10, minval=1, title='EMA 10 Length')
+len20 = input.int(20, minval=1, title='SMA 20 Length')
+len34 = input.int(34, minval=1, title='EMA 34 Length')
+len50 = input.int(50, minval=1, title='SMA 50 Length')
+len200 = input.int(200, minval=1, title='SMA 200 Length')
+
+// Len support and resistance
+
+lenresistance = input.int(90, minval = 1, title="Resistance Lenght")
+lensupport = input.int(90, minval = 1, title="Support Lenght")
+
+
+// Define RoC
+
+roc = ((close - close[13]) / close[13]) * 100
+
+// EMA 10
+
+emaplot10 = input (true, title="Show EMA10 on chart")
+out10 = ta.ema(close, len10)
+up10 = out10 > out10[1]
+down10 = out10 < out10[1]
+mycolor10 = up10 ? color.rgb(4, 215, 248): down10 ? color.rgb(174, 236, 246) : color.rgb(4, 215, 248)
+plot(out10 and emaplot10 ? out10 :na, title="EMA10:)", color=mycolor10, linewidth = 3)
+
+// EMA 34
+
+emaplot34 = input (false, title="Show EMA34 on chart")
+out34 = ta.ema(close, len34)
+up34 = out34 > out34[1]
+down34 = out34 < out34[1]
+mycolor34 = up34 ? color.rgb(255, 100, 0) : down34 ? color.rgb(245, 191, 154) : color.rgb(255, 100, 0)
+plot(out34 and emaplot34 ? out34 :na, title="EMA34:)", color=mycolor34, linewidth = 3)
+
+// SMA 20
+
+smaplot20 = input (true, title="Show SMA20 on chart")
+out20 = ta.sma(close, len20)
+up20 = out20 > out20[1]
+down20 = out20 < out20[1]
+mycolor20 = up20 ? color.rgb(246, 0, 218) : down20 ? color.rgb(244, 197, 239) : color.rgb(246, 0, 218)
+plot(out20 and smaplot20 ? out20 :na, title="SMA20:)", color=mycolor20, linewidth = 3)
+
+// SMA 50
+
+smaplot50 = input (true, title="Show SMA50 on chart")
+out50 = ta.sma(close, len50)
+up50 = out50 > out50[1]
+down50 = out50 < out50[1]
+mycolor50 = up50 ? color.rgb(246, 0, 8) : down50 ? color.rgb(243, 132, 136): color.rgb(246, 0, 8)
+plot(out50 and smaplot50 ? out50 :na, title="SMA50:)", color=mycolor50, style=plot.style_circles, linewidth = 3)
+
+// SMA 200
+
+smaplot200 = input (true, title="Show SMA200 on chart")
+out200 = ta.sma(close, len200)
+up200 = out200 > out200[1]
+down200 = out200 < out200[1]
+mycolor200 = up200 ? color.rgb(8, 10, 246) : down200 ? color.rgb(185, 187, 253) : color.rgb(8, 10, 246)
+plot(out200 and smaplot200 ? out200 :na, title="SMA200:)", color=mycolor200, style=plot.style_circles, linewidth = 3)
+
+// Plot support and resistance lines
+
+// Plot Resistance
+resistanceplot = input (true, title="Show Resistance on chart")
+plot(resistance, color=color.new(#8e5a5a, 0), title='Resistance:)', linewidth=3)
+
+// Plot Support
+
+supportplot = input (true, title="Show Support on chart")
+plot(support, color=color.new(#497545, 0), title='Support:)', linewidth=3)
+
+// OBV
+
+obv = ta.cum(math.sign(ta.change(src)) * volume)
+
+showSignal = input(title="Show Signal ?", defval=true)
+signalType = input(title="Signal Smoothing Type", defval="SMA")
+signalLength = input(title="Signal Smoothing Length", defval=21)
+highlightCrossovers = input(title="Highlight Crossovers ?", defval=false)
+applyFilling = input(title="Apply Ribbon Filling ?", defval=true)
+
+//obv = cum(sign(change(src)) * volume)
+ema_1 = ta.ema(obv, signalLength)
+sma_1 = ta.sma(obv, signalLength)
+signal = signalType == "EMA" ? ema_1 : sma_1
+
+// Define Longski and Shortski
+
+Longski = ema10 > sma20 and sma20 > sma50 and close > sma50 and ema34 > sma50
+Shortski = ema10 < sma20 and sma20 < sma50 and close < sma50 and ema34 < sma50
+
+// Signal long and short
+
+var isLong = false
+var isShort = false
+
+// Long
+
+long = not isLong and Longski and (not confirmOpen or close > open) and (roc > 0 and close[1] < close ? 1 : 0) and obv > signal
+
+// Short
+
+short = not isShort and Shortski and (not confirmOpen or close < open) and (roc < 0 and close[1] > close ? 1 : 0) and obv < signal
+
+if (long)
+    isLong := true
+    isShort := false
+
+if (short)
+    isLong := false
+    isShort := true
+
+// Neutral
+
+neutral = not long and not short
+
+// Plot signals and Alertconditions
+
+plotshape(long, color=color.rgb(6, 180, 255), style=shape.arrowup, title="Long signal", text="LONG", textcolor=color.rgb(6, 180, 255), size=size.large, location=location.belowbar)
+plotshape(short, color=color.rgb(253, 0, 236), style=shape.arrowdown, title="Short signal", text="SHORT", textcolor=color.rgb(253, 0, 236), size=size.large, location=location.abovebar)
+alertcondition(long, title="LONG Signal Alert", message="A buy signal has been detected and to be more safe you better wait for next candle confirmation.Check slope of moving averages")
+alertcondition(short, title="SHORT Signal Alert", message="A sell signal has been detected and to be more safe you better wait for next candle confirmation.Check slope of moving averages")
+
+// Colours 
+
+color bull = color.green
+color bear = color.red
+color nobnob = color.rgb(243, 227, 146)
+
+// Determine Colour 
+
+color candlecolor = Longski ? bull : Shortski ? bear : neutral ? nobnob : na
+
+// Set candle colors
+
+barcolor(candlecolor)
+
+// Bollinger Bands
+
+lengthbb = input.int(34, minval=1)
+mult = input.float(2.0, minval=0.001, maxval=50)
+
+basis = ta.sma(src, lengthbb)
+dev = ta.stdev(src, lengthbb)
+dev2 = mult * dev
+
+upper1 = basis + dev
+lower1 = basis - dev
+upper2 = basis + dev2
+lower2 = basis - dev2
+
+colorBasis = src >= basis ? color.rgb(4, 247, 4, 50) : color.rgb(242, 27, 3, 50)
+
+pBasis = plot(basis, linewidth=1, color=colorBasis, style=plot.style_circles, title="basis:)")
+pUpper1 = plot(upper1, color=color.new(#4caf4f, 100), style=plot.style_circles, title=":)")
+pUpper2 = plot(upper2, color=color.new(#4caf4f, 50), title="upper BB:)")
+pLower1 = plot(lower1, color=color.new(#ff5252, 100), style=plot.style_circles, title=":)")
+pLower2 = plot(lower2, color=color.new(#ff5252, 50), title="lower BB:)")
+
+fill(pBasis, pUpper2, color=color.new(#4caf4f, 100))
+fill(pUpper1, pUpper2, color=color.new(color.green, 92))
+fill(pBasis, pLower2, color=color.new(#ff5252, 100))
+fill(pLower1, pLower2, color=color.new(color.red, 92))
+
+// Sentiment signals
+
+lengthsm = input.int(defval=50, title='Look-back Window', minval=1)
+
+// Define extreme sentiment level above which reveral is expected 
+
+extreme_sentiment = input.float( defval=61.5, title="Extreme Sentiment Level")
+
+// initialize red and green candles counters
+
+count_green = 0
+count_red = 0
+
+// Count green and red candles
+for i = 0 to lengthsm - 1 by 1
+    if open[i] < close[i]
+        count_green := count_green + 1
+        count_green
+    if open[i] > close[i]
+        count_red := count_red + 1
+        count_red
+
+// Calcule percentages of green and rend candles within the lookback window
+
+green_perc = count_green / lengthsm * 100
+red_perc = count_red / lengthsm * 100
+
+// Define extreme sentiment conditions
+
+extreme_bullish = ta.crossover(green_perc, 61.8) 
+extreme_bearish = ta.crossover(red_perc, 61.8)
+
+//Plot labels with signal messages
+plotshape(extreme_bullish and ta.barssince(extreme_bullish[1]) > 20 ? green_perc : na, style=shape.arrowdown, text='R', location=location.abovebar, textcolor=color.rgb(6, 180, 255))
+plotshape(extreme_bearish and ta.barssince(extreme_bearish[1]) > 20 ? red_perc : na, style=shape.arrowup, text='R', location=location.belowbar, textcolor=color.rgb(253, 0, 236))
+````
